@@ -1,0 +1,400 @@
+---
+title: "1st and 2nd Mini Project"
+author: "Tiara Jones"
+date: "6/9/2021"
+output: html_document
+---
+## What is R? What are the basics of R?
+R is a free software that allows data scientists to compute statistics and analyze data. Anyone is able to use R by simply downloading the program on their laptop or desktop. Through R, users have the ability to use various functions and codes to perform data wrangling and data visualization. The basics of R include learning what functions and data types to use to get the desired results. R basics also teaches how to create vectors, and sort the dataset being used. The basics of R are the building blocks of communicating statistical data. 
+
+## Motivation
+   It is vital for all humans to eat fruits, vegetables, and food with quality ingredients in order to sustain a healthy lifestyle. However, U.S.residents who live in urban and rural areas have less access to healthy food from grocery stores. Many African Americans live in urban communities that are considered "food deserts."  According to the Center for American Progress (https://www.americanprogress.org/issues/race/reports/2020/05/07/484742/health-disparities-race-ethnicity/), 80% of African Americans are considered overweight or obese and 13.8% of African Americans live with poor health. The leading causes of death among African Americans are heart disease, cancer, and other. Could African American's poor health be due to their eating habits and access to healthy food? This statistical analysis aims to find a correlation between race, location, and access to healthy food. 
+   
+## Research Questions/ Hypothesis
+"is there a correlation between race and location of residency?"
+"are African Americans more likely to live in food deserts?"
+For this project, my hypothesis is that there will be a positive correlation between race and residency; and more African Americans will live in communities considered "food deserts.
+
+## Data Wrangling
+Data wrangling is the process of transforming a "raw" dataset to one that is more organized and easier to work with. The steps to data wrangling included: discovering, cleaning, enriching, and validating. 
+1. Discovering Data: studying the dataset and understanding various abbreviations found in the columns and rows is necessary in this process. 
+2. Structuring: Secondly, the user must know how to organize the data. This includes reshaping and joining tables. 
+3. Cleaning data: For this step, users must eliminate null values (N/A) or errors. 
+4. Enriching: This step refers to the process of adding a new data set to support research/hypothesis.
+5. validating: This step is necessary to confirm the user correctly cleaned the dataset, that the findings are consistent, and ensures that the everything is distributed normally.
+
+Our group decided we need to clean our dataset further. We plan to combine the columns "lablack1", "lawhite1", "lahisp1", and "laasian1" into "race". We also modified the varibles. We only want to focus on race so we will exclude poverty rate, urban tract, etc.
+```{r}
+setwd("~/DSI Projects")
+install.packages(contrib.url)
+library(dslabs)
+library(tidyverse)
+library(readr)
+library(dplyr)
+library(tidyr)
+library(caret)
+library(ggplot2)
+library(ggrepel)
+library(Hmisc)
+food_acc <- read_csv("~/DSI Projects/food_access_research_atlas.csv")
+str(food_acc)
+```
+```{r}
+foodacc_ <- select(food_acc, c(State, County, POP2010, MedianFamilyIncome, lapop1, lawhite1, lablack1, laasian1, lahisp1, TractWhite, TractBlack, TractAsian, TractHispanic))
+foodacc_AL <- filter(foodacc_, State == "Alabama")
+foodacc_GA <- filter(foodacc_, State == "Georgia")
+foodacc_AL <- filter(foodacc_AL, County == "Jefferson")
+foodacc_GA <- filter(foodacc_GA, County == "Fulton")
+summary(foodacc_AL)
+summary(foodacc_GA)
+```
+###Check for null values
+
+```{r}
+which(is.na(foodacc_AL))
+which(is.na(foodacc_GA))
+```
+
+###Reshape Columns and make sure everything is in numeric form
+```{r}
+class(foodacc_AL$lawhite1)
+foodaccAL_long <- foodacc_AL %>% 
+  gather(key = "Race", 
+         value = "la1",
+  c(lawhite1, lablack1, laasian1, lahisp1))
+
+foodaccGA_long <- foodacc_GA %>% 
+  gather(key = "Race", 
+         value = "la1",
+  c(lawhite1, lablack1, laasian1, lahisp1))
+```
+```{r}
+foodaccAL_long$Race[foodaccAL_long$Race == "lawhite1"] <- "White"
+foodaccAL_long$Race[foodaccAL_long$Race == "lablack1"] <- "AA"
+foodaccAL_long$Race[foodaccAL_long$Race == "laasian1"] <- "Asian"
+foodaccAL_long$Race[foodaccAL_long$Race == "lahisp1"] <- "Hispanic"
+foodaccGA_long$Race[foodaccGA_long$Race == "lawhite1"] <- "White" 
+foodaccGA_long$Race[foodaccGA_long$Race == "lablack1"] <- "AA"
+foodaccGA_long$Race[foodaccGA_long$Race == "laasian1"] <- "Asian"
+foodaccGA_long$Race[foodaccGA_long$Race == "lahisp1"] <- "Hispanic"
+head(foodaccAL_long)
+
+```
+
+##EDA
+We plan to make a bar graph of each population of races who live more than 1 mile from a grocery store. 
+
+```{r}
+ggplot(foodaccAL_long, aes(x=Race, y=la1)) + 
+     geom_bar(stat="identity", width=.5, fill="darkgreen") + 
+     labs(x="Race",
+          y="Count", 
+          title="Populations of Food Desert Residents by Race Jeff. County AL")+ 
+     theme_bw()+
+     theme(plot.title = element_text(size=16),
+           axis.text.x= element_text(size=13),
+           axis.text.y= element_text(size=13),
+           axis.title=element_text(size=15))
+
+```
+
+```{r}
+ggplot(foodaccGA_long, aes(x=Race, y=la1)) + 
+     geom_bar(stat="identity", width=.5, fill="darkgreen") + 
+     labs(x="Race",
+          y="Count", 
+          title="Populations of Food Desert Residents by Race Fult. County GA")+ 
+     theme_bw()+
+     theme(plot.title = element_text(size=16),
+           axis.text.x= element_text(size=13),
+           axis.text.y= element_text(size=13),
+           axis.title=element_text(size=15))
+```
+
+## Facet Histogram
+we want to see how Median family income plays a role in who is more likely to live in food deserts.
+```{r}
+ggplot(foodaccAL_long, aes(x=MedianFamilyIncome)) + 
+geom_histogram(binwidth=400,aes(fill=Race))+
+facet_grid(Race ~ .)+
+labs(x="Median Family Income",
+         y="Count", 
+       title="Median Family Income by Race (Fult.Co,GA)")+  
+theme_bw()+
+theme(plot.title = element_text(size=18)
+      ,axis.text.x= element_text(size=12),
+       axis.text.y= element_text(size=10),
+        axis.title=element_text(size=16))
+```
+
+
+
+
+```{r}
+ggplot(foodaccGA_long, aes(x=MedianFamilyIncome)) + 
+geom_histogram(binwidth=400,aes(fill=Race))+
+facet_grid(Race ~ .)+
+labs(x="Median Family Income",
+         y="Count", 
+       title="Median Family Income by Race (Fult.Co,GA)")+  
+theme_bw()+
+theme(plot.title = element_text(size=18)
+      ,axis.text.x= element_text(size=12),
+       axis.text.y= element_text(size=10),
+        axis.title=element_text(size=16))
+```
+we are not sure if the facet histogram is accurate. We excluded this from our powerpoint because we wanted to only focus on race.  
+##Statistical Analysis
+###Pearson Correlation
+first we will install the packages to make a correlation matrix and perform the test. We have to make another subset that excludes character values (State, County).
+```{r}
+install.packages("corrplot")
+library(corrplot)
+AL <- foodacc_AL[,c(-1,-2)]
+AL
+GA <- foodacc_GA[,c(-1,-2)]
+GA
+```
+
+##Here we will make sure the populations of of each race are properly distributed. We know that Caucasian people tend to be the majority in most places and want to make sure we are accounting for that. 
+```{r}
+white_AL <- sum(foodacc_AL$lawhite1)
+AA_AL <- sum(foodacc_AL$lablack1)
+Hisp_AL <- sum(foodacc_AL$lahisp1)
+Asian_AL <- sum(foodacc_AL$laasian1)
+white_GA <- sum(foodacc_GA$lawhite1)
+AA_GA <- sum(foodacc_GA$lablack1)
+Hisp_GA <- sum(foodacc_GA$lahisp1)
+Asian_GA <- sum(foodacc_GA$laasian1)
+
+TotalJef.Co_Population <- sum(foodacc_AL$POP2010)
+TotalFult.Co_Population <- sum(foodacc_GA$POP2010)
+white_AL/TotalJef.Co_Population
+AA_AL/TotalJef.Co_Population
+Hisp_AL/TotalJef.Co_Population
+Asian_AL/TotalJef.Co_Population
+```
+
+
+```{r}
+TotalFult.Co_Population <- sum(foodacc_GA$POP2010)
+white_GA/TotalFult.Co_Population
+AA_GA/TotalFult.Co_Population
+Hisp_GA/TotalFult.Co_Population
+Asian_GA/TotalFult.Co_Population
+
+```
+
+
+```{r}
+cor(AL, method = "pearson")
+cor(GA, method = "pearson")
+```
+```{r}
+install.packages("psych")
+library(psych)
+corr.test(AL,method = "pearson")
+corr.test(GA,method = "pearson")
+```
+```{r}
+install.packages("ggcorrplot")
+library(ggcorrplot)
+ggcorrplot(cor(AL), hc.order = TRUE, method = "circle")
+plot(AL$lablack1, AL$lapop1, main = "Total AA Population on Total Pop 1 mile > from Supermarket",
+       xlab= "TractBlack", ylab= "lapop1") 
+abline(lm(lapop1 ~ lablack1, data = AL))
+plot(AL$lablack1, AL$lapop1, main = "AA population in Food Deserts vs. Total in Food Deserts (Jeff.co)",
+       xlab= "lablack1", ylab= "lapop1")
+
+  abline(lm(lapop1 ~ lawhite1, data = AL))
+plot(AL$lawhite1, AL$lapop1, main = "White Pop in Food Deserts vs. Total in Food Deserts (Jeff.co)",
+       xlab= "lawhit1", ylab= "lapop1")
+
+  abline(lm(lapop1 ~ laasian1, data = AL))
+plot(AL$laasian1, AL$lapop1, main = "Asian Pop in Food Deserts vs. Total in Food Deserts (Jeff.Co)",
+       xlab= "laasian1", ylab= "lapop1")
+
+  abline(lm(lapop1 ~ lahisp1, data = AL))
+plot(AL$lahisp1, AL$lapop1, main = "Hispanic Pop in Food Deserts vs. Total in Food Deserts (Jeff.Co)",
+       xlab= "lahisp1", ylab= "lapop1")
+
+
+```
+```{r}
+ggcorrplot(cor(GA), hc.order = TRUE, method = "square")
+plot(GA$lablack1, GA$lapop1, main = "Total AA Pop vs. Total Pop 1 mile > from Supermarket(Fult.Co)",
+       xlab= "TractBlack", ylab= "lapop1") +
+  abline(lm(lapop1 ~ lablack1, data = GA))
+plot(GA$lablack1, GA$lapop1, main = "AA Pop in Food Deserts vs. Total in Food Deserts (Fult.CO)",
+       xlab= "lablack1", ylab= "lapop1")
+
+  abline(lm(lapop1 ~ lawhite1, data = GA))
+plot(GA$lawhite1, GA$lapop1, main = "White Pop in Food Deserts vs.Total in Food Deserts (Fult.Co)",
+       xlab= "lawhit1", ylab= "lapop1")
+
+  abline(lm(lapop1 ~ laasian1, data = GA))
+plot(GA$laasian1, GA$lapop1, main = "Asian Pop in Food Deserts vs. Total in Food Deserts (Fult.Co)",
+       xlab= "laasian1", ylab= "lapop1")
+
+  abline(lm(lapop1 ~ lahisp1, data = GA))
+plot(GA$lahisp1, GA$lapop1, main = "Hispanic Pop in Food Deserts vs. Total in Food Deserts (Fult.Co)",
+       xlab= "lahisp1", ylab= "lapop1")
+
+```
+##Machine Learning 
+Machine learning is a prediction model used in data science that allows one to predict information based on an algorithm created by the user. In our research we could use machine learning to predict who is more likely to live in urban food deserts based on the variables provided in the data set. 
+###First we will have to subset the data. 
+```{r}
+set.seed(100)
+TrainingIndex <- createDataPartition(foodacc_AL$MedianFamilyIncome, p= 0.8, list = FALSE) 
+TrainingSet <- foodacc_AL[TrainingIndex,]
+TestingSet <- foodacc_AL[-TrainingIndex,]
+
+```
+###Now Build the Model
+```{r}
+Model <- train(Urban ~ ., data = TrainingSet,
+               method = "svmPoly",
+               na.action = na.omit,
+               preProcess = c("Scale", "center"),
+               trControl = trainControl(method = "none"),
+               tunegrid = data.frame(degree=1, scale=1, c=1))
+model.cv <- train(MedianFamilyIncome ~., data= TestingSet,
+                  method= "svmPoly",
+                  preProcess= c("Scale", "center"),
+                  trControl= trainControl(method="cv", number =10),
+                  tunegrid = data.frame(degree=1, scale=1, c=1))
+```
+###We tried running the model several times but kept getting an error.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
